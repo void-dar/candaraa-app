@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum Region {
+  AFRICA
+  EUROPE
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  PREMIUM
+  GUEST
+}
+
+enum Difficulty {
+  GUEST
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum Provider {
+  GOOGLE
+  PASSWORD
+  PHONE
+}
+
+model User {
+  id       String @id @default(uuid()) @db.Uuid
+  username  String @unique
+  email     String   @unique
+  password String
+  phoneNumber String? @unique 
+  isPremium Boolean @default(false)
+  isVerified Boolean @default(false)
+  region Region  
+  role UserRole @default(GUEST)
+  level Int @default(0)
+  points Int @default(0)
+  streak Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authProviders  AuthProvider[]  
+  wallet Wallet?
+  question Question[]
+  finance Finance?
+}
+
+model Wallet {
+  walletId String @id @default(uuid()) @db.Uuid
+  walletAddress String? @unique
+  userId String @unique @db.Uuid
+  user User @relation(fields: [userId], references: [id])
+  holdings Finance?
+}
+
+model Question {
+  id Int @id @default(autoincrement())
+  category String 
+  region String[]
+  prompt String 
+  answer String
+  options String[] @default([])
+  attempted Int? @default(0)
+  difficulty Difficulty[] @default([EASY])
+  authorId String? @db.Uuid
+  author User? @relation(fields: [authorId], references: [id])
+}
+
+model Finance {
+  id String @id @default(uuid()) @db.Uuid
+  coins Int @default(0)
+  crypto Json @default("{}")
+  userId String @unique @db.Uuid
+  walletId String? @unique @db.Uuid
+  holder User @relation(fields: [userId], references: [id])
+  wallet Wallet? @relation(fields: [walletId], references: [walletId])
+}
+
+model AuthProvider {
+  id    String   @id @default(uuid()) @db.Uuid
+  provider  Provider 
+  providerId String?
+  userId    String  @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  
+}
