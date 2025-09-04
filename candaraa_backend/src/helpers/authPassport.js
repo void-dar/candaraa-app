@@ -3,7 +3,6 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import bcrypt from "bcrypt";
-import fetch from "node-fetch";
 import prisma from "../database/db.js";
 
 
@@ -19,7 +18,7 @@ passport.use(
         const match = await bcrypt.compare(password, user.password);
         if (!match) return done(null, false, { message: "Incorrect password" });
         const userId = user.id;
-        const streak = user.streak;
+        let streak = user.streak;
         streak++;
         await prisma.user.update({ where: { id: userId }, data: {streak: streak} });
         return done(null, user);

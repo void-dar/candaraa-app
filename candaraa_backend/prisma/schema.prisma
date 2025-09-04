@@ -14,7 +14,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
+enum FinanceAction {
+  EARN
+  CONVERT
+}
 enum Region {
   AFRICA
   EUROPE
@@ -51,14 +54,15 @@ model User {
   region Region  
   role UserRole @default(GUEST)
   level Int @default(0)
-  points Int @default(0)
+  coins Int @default(0)
+  usdt Int @default(0)
   streak Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   authProviders  AuthProvider[]  
   wallet Wallet?
   question Question[]
-  finance Finance?
+  transactions Transaction[]
 }
 
 model Wallet {
@@ -66,7 +70,6 @@ model Wallet {
   walletAddress String @unique
   userId String @unique @db.Uuid
   user User @relation(fields: [userId], references: [id])
-  holdings Finance?
 }
 
 model Question {
@@ -76,21 +79,12 @@ model Question {
   prompt String 
   answer String
   options String[] @default([])
-  attempted Int? @default(0)
   difficulty Difficulty[] @default([EASY])
   authorId String? @db.Uuid
   author User? @relation(fields: [authorId], references: [id])
 }
 
-model Finance {
-  id String @id @default(uuid()) @db.Uuid
-  coins Int @default(0)
-  crypto Json @default("{}")
-  userId String @unique @db.Uuid
-  walletId String? @unique @db.Uuid
-  holder User @relation(fields: [userId], references: [id])
-  wallet Wallet? @relation(fields: [walletId], references: [walletId])
-}
+
 
 model AuthProvider {
   id    String   @id @default(uuid()) @db.Uuid
@@ -103,4 +97,16 @@ model AuthProvider {
   updatedAt DateTime @updatedAt
 
   
+}
+
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  userId    String @db.Uuid
+  type      FinanceAction  
+  amount    Float
+  details   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

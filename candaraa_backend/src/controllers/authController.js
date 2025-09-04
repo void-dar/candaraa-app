@@ -13,9 +13,7 @@ const registerUserWithPassword = async (req, res, next) => {
             include: { authProviders: true }
         });
         if (userExists && userExists.authProviders.map(p => p.provider).includes("GOOGLE")) {
-            res.status(200).json({
-                google_auth: true
-            })
+            res.redirect("/auth/google")
             
         }else if (userExists && userExists.authProviders.map(p => p.provider).includes("PASSWORD")) {
             res.status(400).json({
@@ -52,6 +50,7 @@ const registerUserWithPassword = async (req, res, next) => {
             req.newUser = newUser
 
             setImmediate(async () => {
+                let url = "http://localhost:3000"
                 await sendEmail({
                     to: email,
                     subject: "Verify Your Email",
@@ -59,10 +58,9 @@ const registerUserWithPassword = async (req, res, next) => {
                             <p>Click below to verify your email:</p>
                             <a href="${url}">Verify Email</a>`,
                 });
-                res.status(200).json({ message: "Verification email sent" });
-            });
-
-        res.status(200).json({ message: "Verification email sent" });
+            })
+                req.newUser = newUser;   
+            //res.status(200).json({ message: "Verification email sent", newUser });
         
             next()
             

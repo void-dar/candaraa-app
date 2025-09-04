@@ -45,29 +45,3 @@ export const convertCoinsToCrypto = async (req, res) => {
   }
 };
 
-// POST /conversion/points-to-crypto
-export const convertPointsToCrypto = async (req, res) => {
-  const userId = req.user.id;
-  const { cryptoId } = req.body;
-
-  try {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
-
-    const coins = pointsToCoins(user.points);
-    const usdValue = coinsToUSD(coins);
-    const cryptoAmount = await usdToCrypto(usdValue, cryptoId || "solana");
-
-    res.status(200).json({
-      success: true,
-      points: user.points,
-      coins,
-      usdValue,
-      crypto: cryptoAmount,
-      cryptoId: cryptoId || "bitcoin",
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: true, message: "Server error" });
-  }
-};

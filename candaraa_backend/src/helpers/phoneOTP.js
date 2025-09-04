@@ -44,8 +44,14 @@ export async function verifyOtp(phoneNumber,code, user) {
     },
   });
   
-
-  
-  await prisma.authProvider.delete({ where: { id: record.id } });
-  return true;
+  let getUser = await prisma.user.findUnique({
+      where: {id: user.id},
+      
+    });
+    
+  await prisma.authProvider.update({ where: { id: record.id },
+  data: {
+    providerId: null
+  } });
+  return {success: true, user: getUser};
 }

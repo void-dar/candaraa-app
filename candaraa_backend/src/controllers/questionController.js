@@ -1,14 +1,17 @@
 import prisma  from "../database/db.js";
+import { Difficulty } from "../../generated/prisma/index.js";
 import { actionRewards } from "../helpers/rewards.js";
 import { calculateLevel } from "../helpers/level.js";
 import { checkBadges } from "../helpers/badges.js";
 
 
+
 const getDifficultyForLevel = (level) => {
-  if (level >= 60) return "HARD";
-  if (level >= 30) return "MEDIUM";
-  return "EASY";
+  if (level >= 60) return Difficulty.HARD;
+  if (level >= 30) return Difficulty.MEDIUM;
+  return Difficulty.EASY;
 };
+
 
 export const getRandomQuestion = async (req, res) => {
   try {
@@ -17,7 +20,9 @@ export const getRandomQuestion = async (req, res) => {
 
     const difficulty = getDifficultyForLevel(user.level);
 
-    const questions = await prisma.question.findMany({ where: { difficulty } });
+    const questions = await prisma.question.findMany({ where: {difficulty: {
+      has: difficulty
+    }} });
     if (questions.length === 0) return res.status(404).json({ success: false, message: "No questions available for your level" });
 
     const randomIndex = Math.floor(Math.random() * questions.length);
@@ -76,8 +81,8 @@ export const answerQuestion = async (req, res) => {
     }
 
     res.status(200).json({
-      correct: answer === question.correct,
-      reward: { xp, points },
+      correct: answer === question.answer,
+      reward: { points },
       profile: updatedUser,
       earnedBadges,
     });
