@@ -44,7 +44,8 @@ const registerUserWithPassword = async (req, res, next) => {
                     role: role,
                     region: region,
                     phoneNumber: phoneNumber
-                }
+                },
+              
             }); 
 
             req.newUser = newUser

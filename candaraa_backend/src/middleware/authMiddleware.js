@@ -10,7 +10,7 @@ export const verifyToken = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
     if (!decoded) return res.status(401).json({ message: "Invalid token" });
 
     // check if user exists in DB

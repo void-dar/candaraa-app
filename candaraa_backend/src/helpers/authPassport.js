@@ -5,6 +5,13 @@ import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import bcrypt from "bcrypt";
 import prisma from "../database/db.js";
 
+function isNewDay(date1, date2) {
+    return (
+        date1.getFullYear() !== date2.getFullYear() ||
+        date1.getMonth() !== date2.getMonth() ||
+        date1.getDate() !== date2.getDate()
+    );
+}
 
 passport.use(
   new LocalStrategy(
@@ -13,14 +20,34 @@ passport.use(
      },
     async (email, password, done) => {
       try {
-        const user = await prisma.user.findUnique({ where: { email } });
+        let user = await prisma.user.findUnique({ where: { email } });
         if (!user) return done(null, false, { message: "User not found" });
         const match = await bcrypt.compare(password, user.password);
         if (!match) return done(null, false, { message: "Incorrect password" });
         const userId = user.id;
+        let lastSeen = new Date();
         let streak = user.streak;
-        streak++;
-        await prisma.user.update({ where: { id: userId }, data: {streak: streak} });
+        if (isNewDay(lastSeen, user.updatedAt)) { 
+          streak++;
+        }
+        
+        user = await prisma.user.update({ where: { id: userId }, data: {streak: streak},  select: {
+            id: true,
+            username: true,
+            email: true,
+            phoneNumber: true,
+            isPremium: true,
+            isVerified: true,
+            region: true,
+            role: true,
+            level: true,
+            points: true,
+            coins: true,
+            usdt: true,
+            streak: true,
+            createdAt: true,
+            updatedAt: true }});
+       
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -91,11 +118,26 @@ passport.use(
   new JwtStrategy(
     {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: process.env.ACCESS_SECRET,
     },
     async (jwtPayload, done) => {
       try {
-        const user = await prisma.user.findUnique({ where: { id: jwtPayload.sub } });
+        const user = await prisma.user.findUnique({ where: { id: jwtPayload.sub }, select:  {
+            id: true,
+            username: true,
+            email: true,
+            phoneNumber: true,
+            isPremium: true,
+            isVerified: true,
+            region: true,
+            role: true,
+            level: true,
+            points: true,
+            coins: true,
+            usdt: true,
+            streak: true,
+            createdAt: true,
+            updatedAt: true} });
         done(null, user || false);
       } catch (err) {
         done(err, false);

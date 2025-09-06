@@ -1,4 +1,3 @@
-import { success } from "zod";
 import prisma from "../database/db.js";
 import { pointsToCoins, coinsToUSD, usdToCrypto } from "../helpers/conversion.js";
 
@@ -25,19 +24,25 @@ export const convertPointsToCoins = async (req, res) => {
 
 // POST /conversion/coins-to-crypto
 export const convertCoinsToCrypto = async (req, res) => {
+  let user = req.user
   const { coins, cryptoId } = req.body;
   if (!coins || coins <= 0) return res.status(400).json({ success: false, message: "Invalid coin amount" });
 
   try {
+    let formerCoins = user.coins;
+    if (formerCoins < coins) {res.status(400).json({success: false, message: "Insufficient balance"})}
     const usdValue = coinsToUSD(coins);
-    const cryptoAmount = await usdToCrypto(usdValue, cryptoId || "solana");
+    const cryptoAmount = await usdToCrypto(usdValue, 'usdt');
+    newAmountCoin = formerCoins - coins
+    newAmountUsdt = user.usdt + cryptoAmount
 
+    await prisma.user.update({where: {id: user.id}, data: {coins: newAmountCoin, usdt: newAmountUsdt}})
     res.status(200).json({
       success: true,
-      coins,
+      newAmountCoin,
       usdValue,
-      crypto: cryptoAmount,
-      cryptoId: cryptoId || "solana",
+      usdt: newAmountUsdt,
+      cryptoId: "usdt",
     });
   } catch (err) {
     console.error(err);

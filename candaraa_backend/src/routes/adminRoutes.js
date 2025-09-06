@@ -1,8 +1,8 @@
 import express from "express"
 const router = express.Router();
-import {getUsers, deleteUser, getQuestions, getQuestionById, createQuestion, updateQuestion, deleteQuestion, getTokenTransactions, getCoinStats} from "../controllers/adminContollers"
-import {verifyToken} from "../middleware/authMiddleware"
-import isAdmin from "../middleware/adminMiddleware"
+import {getUsers, deleteUser, getQuestions, getQuestionById, createQuestion, updateQuestion, deleteQuestion, getTokenTransactions, getCoinStats} from "../controllers/adminContollers.js"
+import {verifyToken} from "../middleware/authMiddleware.js"
+import isAdmin from "../middleware/adminMiddleware.js"
 
 
 router.get('/users', getUsers);
@@ -22,4 +22,4 @@ router.delete('/questions/:id', verifyToken, isAdmin, deleteQuestion);
 router.get('/economy/transactions', verifyToken, isAdmin, getTokenTransactions);
 router.get('/economy/coin-stats', verifyToken, isAdmin, getCoinStats);
 
-module.exports = router;
+export default router;

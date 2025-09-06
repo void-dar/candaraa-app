@@ -1,5 +1,5 @@
 // controllers/adminController.js
-import prisma from "../database/db"
+import prisma from "../database/db.js"
 
 // User Management Controllers
 

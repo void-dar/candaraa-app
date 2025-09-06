@@ -1,8 +1,7 @@
 import prisma from "../database/db.js";
 import { calculateLevel, pointsForNextLevel} from "../helpers/level.js";
 import {actionRewards} from "../helpers/rewards.js"
-import { checkBadges } from "../helpers/badges.js";
-import { success } from "zod";
+
 
 const gameControl =  async (req, res) => {
   const userId = req.user.id;
@@ -33,20 +32,11 @@ const gameControl =  async (req, res) => {
     });
 
     
-    const earnedBadges = checkBadges(updatedUser);
-    if (earnedBadges.length > 0) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { badges: { push: earnedBadges } },
-      });
-      updatedUser.badges.push(...earnedBadges);
-    }
-
+    
     res.status(200).json({
       success: true,
       message: `Action '${actionType}' completed!`,
       profile: updatedUser,
-      earnedBadges,
       pointsForNextLevel: nextLevel
     });
   } catch (err) {

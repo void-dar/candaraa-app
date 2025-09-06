@@ -2,7 +2,8 @@ import prisma  from "../database/db.js";
 import { Difficulty } from "../../generated/prisma/index.js";
 import { actionRewards } from "../helpers/rewards.js";
 import { calculateLevel } from "../helpers/level.js";
-import { checkBadges } from "../helpers/badges.js";
+import { pointsToCoins} from "../helpers/conversion.js";
+import { formatDecimal } from "../helpers/decimalFormatter.js";
 
 
 
@@ -15,20 +16,26 @@ const getDifficultyForLevel = (level) => {
 
 export const getRandomQuestion = async (req, res) => {
   try {
+    // Find user
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
+    // Get difficulty based on user level
     const difficulty = getDifficultyForLevel(user.level);
 
-    const questions = await prisma.question.findMany({ where: {difficulty: {
-      has: difficulty
-    }} });
-    if (questions.length === 0) return res.status(404).json({ success: false, message: "No questions available for your level" });
+    // Fetch all questions matching the difficulty
+    const questions = await prisma.question.findMany({
+      where: { difficulty: { has: difficulty } },
+    });
 
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    const { answer, ...questionData } = questions[randomIndex]; 
+    if (questions.length === 0)
+      return res.status(404).json({ success: false, message: "No questions available for your level" });
 
-    res.status(200).json({ question: questionData });
+    // Shuffle the questions and take up to 10
+    const shuffled = questions.sort(() => 0.5 - Math.random());
+    const selectedQuestions = shuffled.slice(0, 10).map(({ answer, ...q }) => q); // remove 'answer' field
+
+    res.status(200).json({ questions: selectedQuestions });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -48,44 +55,53 @@ export const answerQuestion = async (req, res) => {
     const userBefore = await prisma.user.findUnique({ where: { id: userId } });
 
    
-    let points = 0;
+   
 
-    if (answer === question.answer) {
+    if (answer.toString() === question.answer) {
+      let points = 0;
+      let coins = 0;
+
       // Assign rewards based on difficulty
-      const reward = actionRewards[question.difficulty] || { xp: 10, points: 5 };
+      const reward = actionRewards[question.difficulty] || { points: 5 };
      
       points = reward.points;
-    }
+      coins = pointsToCoins(points);
 
-    
-    const newPoints = userBefore.points + points;
-    const newLevel = calculateLevel(newPoints);
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        points: newPoints,
-        level: newLevel,
-      },
-      select: { id: true, xp: true, points: true, level: true, badges: true },
-    });
+      const newPoints = userBefore.points + points;
+      const newLevel = calculateLevel(newPoints);
+      const newCoins = userBefore.coins + coins;
 
-    
-    const earnedBadges = checkBadges(updatedUser);
-    if (earnedBadges.length > 0) {
-      await prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data: { badges: { push: earnedBadges } },
+        data: {
+          points: newPoints,
+          coins: formatDecimal(newCoins),
+          level: newLevel,
+        },
+        select: { id: true, coins: true, points: true, level: true},
       });
-      updatedUser.badges.push(...earnedBadges);
+
+    
+     
+
+      res.status(200).json({
+        answer: answer === question.answer,
+        points: points,
+        user: updatedUser
+        
+      });
+
+    }else {
+      res.status(200).json({
+        success: false,
+        user: userBefore,
+        answer: false
+      })
     }
 
-    res.status(200).json({
-      correct: answer === question.answer,
-      reward: { points },
-      profile: updatedUser,
-      earnedBadges,
-    });
+    
+    
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

@@ -52,9 +52,10 @@ model User {
   isPremium Boolean @default(false)
   isVerified Boolean @default(false)
   region Region  
-  role UserRole @default(GUEST)
+  role UserRole @default(USER)
   level Int @default(0)
-  coins Int @default(0)
+  points Int @default(0)
+  coins Decimal  @db.Decimal(10,2) @default(0.00)
   usdt Int @default(0)
   streak Int @default(0)
   createdAt DateTime @default(now())

@@ -8,6 +8,7 @@ import gameRouter from "./routes/gameRoutes.js"
 import questionRouter from "./routes/questionRoutes.js"
 import conversionRouter from "./routes/conversionRoutes.js"
 import adminRouter from "./routes/adminRoutes.js"
+import leaderBoardRouter from "./routes/leaderBoard.js"
 
 
 
@@ -29,6 +30,7 @@ app.use("/game", gameRouter);
 app.use("/question", questionRouter);
 app.use("/convert", conversionRouter);
 app.use("/auth", adminRouter)
+app.use("/leaderboard", leaderBoardRouter)
 
 
 app.listen(PORT, () => {
