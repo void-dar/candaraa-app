@@ -6,7 +6,8 @@ import { getLeaderBoard } from "../controllers/leaderboardController.js";
 const router = express.Router();
 
 
-router.get("/all", verifyToken, getLeaderBoard)
+router.get("/all", getLeaderBoard)
+router.get("/region", verifyToken, getLeaderBoard)
 
 
 export default router;

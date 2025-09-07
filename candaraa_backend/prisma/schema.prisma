@@ -16,7 +16,7 @@ datasource db {
 
 enum FinanceAction {
   EARN
-  CONVERT
+  WITHDRAW
 }
 enum Region {
   AFRICA
@@ -75,7 +75,7 @@ model Wallet {
 
 model Question {
   id Int @id @default(autoincrement())
-  category String 
+  category String? 
   region String[]
   prompt String 
   answer String
@@ -105,7 +105,7 @@ model Transaction {
   id        Int      @id @default(autoincrement())
   userId    String @db.Uuid
   type      FinanceAction  
-  amount    Float
+  amount    Decimal  @db.Decimal(10,2) @default(0.00)
   details   String?
   createdAt DateTime @default(now())
 

@@ -4,6 +4,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import bcrypt from "bcrypt";
 import prisma from "../database/db.js";
+import { Region } from "../../generated/prisma/index.js";
 
 function isNewDay(date1, date2) {
     return (
@@ -61,7 +62,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/auth/google/secrets",
+      callbackURL: `${process.env.BASE_URL}/auth/google/secrets`,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -78,6 +79,8 @@ passport.use(
               email: profile.emails[0].value,
               username: profile.displayName,
               password: "google",
+              isVerified: true,
+              region: Region.AFRICA,
               
               authProviders: {
                 create: {
@@ -103,6 +106,7 @@ passport.use(
             });
           }
         }
+       
 
         return done(null, user);
       } catch (err) {

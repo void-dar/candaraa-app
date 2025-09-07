@@ -12,7 +12,7 @@ router.delete('/users/:id', deleteUser);
 router.get('/questions', verifyToken, isAdmin, getQuestions);
 router.get('/questions/:id', verifyToken, isAdmin, getQuestionById);
 router.post('/questions', verifyToken, isAdmin, createQuestion);
-router.put('/questions/:id', verifyToken, isAdmin, updateQuestion);
+router.post('/questions/:id', verifyToken, isAdmin, updateQuestion);
 router.delete('/questions/:id', verifyToken, isAdmin, deleteQuestion);
 
 

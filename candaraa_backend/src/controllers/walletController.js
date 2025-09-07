@@ -1,5 +1,21 @@
 import prisma from "../database/db.js";
 
+export const getWallet = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: {userId: userId}
+    })
+
+
+    res.status(201).json({ wallet});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to get wallet" });
+  }
+}
+
+
 // Add a wallet
 export const addWallet = async (req, res) => {
   const userId = req.user.id;
@@ -11,6 +27,11 @@ export const addWallet = async (req, res) => {
         walletAddress,
       },
     });
+
+    await prisma.user.update({
+      where: {id: userId},
+      data: {isPremium: true}
+    })
 
 
     res.status(201).json({ wallet });
@@ -89,6 +110,8 @@ export const withdrawUsdt = async (req, res) => {
     // Convert coins to crypto amount
    
     const cryptoAmount = await prisma.user.update({where: {id: userId}, data: {usdt: (req.user.usdt - usdt)}, select: {usdt: true}})
+    await prisma.transaction.update({where: {id: user.id}, data: {amount: usdt, type: FinanceAction.WITHDRAW}})
+    
 
 
 
@@ -105,3 +128,14 @@ export const withdrawUsdt = async (req, res) => {
     res.status(500).json({success: false, message: "Withdrawal failed" });
   }
 };
+
+export const getTransactions = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    let transactions = await prisma.transaction.findMany({where: {userId: userId}})
+    if (!transactions) res.status(404).json({success: false, message: "Transaction not found"})
+    res.status(200).json({success: true, transactions})
+  } catch (error) {
+    res.status(500).json({success: false, message: "Couldn't get transaction" });
+  }
+}

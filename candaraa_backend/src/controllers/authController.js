@@ -3,6 +3,7 @@ config();
 import bcrypt from "bcrypt"
 import prisma from "../database/db.js"
 import { sendEmail } from "../helpers/mailer.js";
+import { generateToken } from "../helpers/generateToken.js";
 
 
 const registerUserWithPassword = async (req, res, next) => {
@@ -50,14 +51,17 @@ const registerUserWithPassword = async (req, res, next) => {
 
             req.newUser = newUser
 
+            let userId = newUser.id
+            let token = generateToken(userId)
+
             setImmediate(async () => {
-                let url = "http://localhost:3000"
+                
                 await sendEmail({
                     to: email,
                     subject: "Verify Your Email",
-                    html: `<h3>Hello ${username}</h3>
+                    html: `<h3>Hello ${newUser.username}</h3>
                             <p>Click below to verify your email:</p>
-                            <a href="${url}">Verify Email</a>`,
+                            <a href="${process.env.BASE_URL}/verifyEmail?${token}">Verify Email</a>`,
                 });
             })
                 req.newUser = newUser;   

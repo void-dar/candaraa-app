@@ -5,7 +5,7 @@ import { getRandomQuestion, answerQuestion, addQuestion, updateQuestion, deleteQ
 
 const router = express.Router();
 
-router.get("/random", verifyToken, getRandomQuestion);
+router.get("/random",verifyToken, getRandomQuestion);
 router.post("/answer", verifyToken, answerQuestion);
 router.post("/add", verifyToken, isAdmin, addQuestion);
 router.put("/update/:id", verifyToken, isAdmin, updateQuestion);

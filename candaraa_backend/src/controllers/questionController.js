@@ -1,9 +1,9 @@
 import prisma  from "../database/db.js";
-import { Difficulty } from "../../generated/prisma/index.js";
+import { Difficulty, Region } from "../../generated/prisma/index.js";
 import { actionRewards } from "../helpers/rewards.js";
 import { calculateLevel } from "../helpers/level.js";
 import { pointsToCoins} from "../helpers/conversion.js";
-import { formatDecimal } from "../helpers/decimalFormatter.js";
+import { Decimal } from "@prisma/client/runtime/library"
 
 
 
@@ -70,13 +70,13 @@ export const answerQuestion = async (req, res) => {
 
       const newPoints = userBefore.points + points;
       const newLevel = calculateLevel(newPoints);
-      const newCoins = userBefore.coins + coins;
+      const newCoins = Number(userBefore.coins) + Number(coins);
 
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: {
           points: newPoints,
-          coins: formatDecimal(newCoins),
+          coins: new Decimal(newCoins),
           level: newLevel,
         },
         select: { id: true, coins: true, points: true, level: true},
@@ -110,9 +110,10 @@ export const answerQuestion = async (req, res) => {
 
 
 export const addQuestion = async (req, res) => {
-  const { prompt, category, region , options, answer, difficulty } = req.body;
-
-  if (!prompt || !category || !region || !options || !answer || !difficulty) {
+  const { prompt, category, region , answer, difficulty } = req.body;
+  region = Region[region.toUpperCase()]
+  difficulty = Difficulty[difficulty.toUpperCase()]
+  if (!prompt  || !region  || !answer || !difficulty) {
     return res.status(400).json({ success: false, message: "All fields are required" });
   }
 

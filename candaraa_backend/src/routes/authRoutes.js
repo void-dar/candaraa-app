@@ -1,5 +1,6 @@
 import express from "express";
 import validate from "../middleware/schemaValidator.js"
+import verifyToken from "../middleware/authMiddleware.js";
 import prisma from "../database/db.js";
 import {} from "../helpers/authPassport.js"
 import {sendOtp, verifyOtp} from "../helpers/phoneOTP.js"
@@ -7,6 +8,7 @@ import { createUserSchema, loginUserSchema } from "../schema/User.js"
 import passport from "passport";
 import registerUserWithPassword from "../controllers/authController.js";
 import {generateToken, generateRefreshToken} from "../helpers/generateToken.js"
+import jwt from "jsonwebtoken";
 
 
 const router = express.Router();
@@ -60,7 +62,7 @@ router.post("/otp/verify",  async (req, res) => {
   if (!user) return res.status(400).json({ error: "Invalid OTP" });
 
   
-  const token = generateToken(user);
+  const token = generateToken(req.user);
   const refreshToken = generateRefreshToken(req.user)
   res.json({ token, user, refreshToken });
 });
@@ -77,9 +79,26 @@ router.get(
   "/google/secrets",
   passport.authenticate("google", { session: false }),
   (req, res) => {
-    const token = generateToken(req.user);
-    const refreshToken = generateRefreshToken(req.user)
-    res.json({ token, refreshToken });
+
+      const token = generateToken(req.user);
+      const refreshToken = generateRefreshToken(req.user)
+
+      res.cookie('token', token, {
+        httpOnly: true,    
+        secure: false,     // set to true in production (https)
+        sameSite: 'lax',   
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      });
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: false,     
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+    res.redirect(`http://localhost:5500/candaraa.html`);
+
   }
 );
 
@@ -126,6 +145,47 @@ router.post("/refresh", async (req, res) => {
     console.error(err);
     res.status(403).json({ message: "Invalid or expired refresh token" });
   }
+});
+
+router.post("/verifyEmail",verifyToken, async (req, res) => {
+  try {
+    let userId = req.user.id;
+    let token = req.query.token
+
+    
+    const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
+    if (!decoded) return res.status(401).json({ message: "Invalid token" });
+    
+    const user = await prisma.user.findUnique({ where: { id: decoded.sub } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (userId === userId) {
+      await prisma.user.update({where: {id: userId},
+      data: {isVerified: true}})
+    }else {
+      res.status(400).json({
+        success: false,
+        message: "Something went wrong"
+      })
+    }
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Unexpected error"
+    })
+  }
+})
+
+router.get('/tokens', (req, res) => {
+  const token = req.cookies.token;
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!token || !refreshToken) {
+    return res.status(401).json({ message: 'Tokens not found' });
+  }
+
+  res.json({ token, refreshToken });
 });
 
 export default router;

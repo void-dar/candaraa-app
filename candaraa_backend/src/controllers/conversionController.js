@@ -1,4 +1,5 @@
 import prisma from "../database/db.js";
+import { FinanceAction } from "../../generated/prisma/index.js";
 import { pointsToCoins, coinsToUSD, usdToCrypto } from "../helpers/conversion.js";
 
 export const convertPointsToCoins = async (req, res) => {
@@ -25,7 +26,7 @@ export const convertPointsToCoins = async (req, res) => {
 // POST /conversion/coins-to-crypto
 export const convertCoinsToCrypto = async (req, res) => {
   let user = req.user
-  const { coins, cryptoId } = req.body;
+  const { coins} = req.body;
   if (!coins || coins <= 0) return res.status(400).json({ success: false, message: "Invalid coin amount" });
 
   try {
@@ -37,6 +38,7 @@ export const convertCoinsToCrypto = async (req, res) => {
     newAmountUsdt = user.usdt + cryptoAmount
 
     await prisma.user.update({where: {id: user.id}, data: {coins: newAmountCoin, usdt: newAmountUsdt}})
+    await prisma.transaction.update({where: {id: user.id}, data: {amount: cryptoAmount, type: FinanceAction.EARN}})
     res.status(200).json({
       success: true,
       newAmountCoin,

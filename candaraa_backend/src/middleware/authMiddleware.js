@@ -8,17 +8,36 @@ export const verifyToken = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith("Bearer "))
       return res.status(401).json({ message: "No token provided" });
 
-    const token = authHeader.split(" ")[1];
+    if (authHeader) {
 
-    const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
-    if (!decoded) return res.status(401).json({ message: "Invalid token" });
+      let token = authHeader.split(" ")[1];
 
-    // check if user exists in DB
-    const user = await prisma.user.findUnique({ where: { id: decoded.sub } });
-    if (!user) return res.status(404).json({ message: "User not found" });
+      const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
+      if (!decoded) return res.status(401).json({ message: "Invalid token" });
 
-    req.user = user; // attach user to request
-    next();
+      // check if user exists in DB
+      const user = await prisma.user.findUnique({ where: { id: decoded.sub } });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      req.user = user; // attach user to request
+
+      next();
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+
+      const decoded = jwt.verify(token, process.env.ACCESS_SECRET);
+      if (!decoded) return res.status(401).json({ message: "Invalid token" });
+
+      // check if user exists in DB
+      const user = await prisma.user.findUnique({ where: { id: decoded.sub } });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      req.user = user; // attach user to request
+
+      next();
+      }
+
+
   } catch (err) {
     console.error(err);
     res.status(401).json({ message: "Unauthorized" });
@@ -26,3 +45,4 @@ export const verifyToken = async (req, res, next) => {
 };
 
 export default verifyToken;
+

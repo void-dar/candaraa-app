@@ -1,5 +1,6 @@
 // controllers/adminController.js
 import prisma from "../database/db.js"
+import { Difficulty, Region, UserRole } from "../../generated/prisma/index.js";
 
 // User Management Controllers
 
@@ -8,26 +9,25 @@ const getUsers = async (req, res) => {
   try {
     const { page = 1, limit = 10, search, role, status } = req.query;
     const skip = (page - 1) * limit;
-    
     let whereClause = {};
     
+
+
     // Add search filter
     if (search) {
       whereClause.OR = [
         { username: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
+        
       ];
     }
-    
+
+   
     // Add type filter
     if (role && role !== 'all') {
       whereClause.role = role;
     }
     
-    // Add status filter
-    if (status) {
-      whereClause.active = status === 'active';
-    }
     
     const users = await prisma.user.findMany({
       where: whereClause,
@@ -40,13 +40,14 @@ const getUsers = async (req, res) => {
         email: true,
         role: true,
         coins: true,
-        active: true,
-        walletAddress: true,
+        points: true,
+        wallet: true,
+        isPremium: true,
+        isVerified: true,
         createdAt: true,
         region: true,
         _count: {
           select: {
-            games: true,
             transactions: true,
           }
         }
@@ -54,6 +55,8 @@ const getUsers = async (req, res) => {
     });
     
     const totalUsers = await prisma.user.count({ where: whereClause });
+    const normalUsers = await prisma.user.count({ where: {role: UserRole.USER} });
+    const premiumUsers = await prisma.user.count({ where: {isPremium: true }});
     
     res.json({
       users,
@@ -61,7 +64,9 @@ const getUsers = async (req, res) => {
         current: parseInt(page),
         total: Math.ceil(totalUsers / limit),
         count: users.length,
-        totalRecords: totalUsers
+        totalRecords: totalUsers,
+        normalUsers,
+        premiumUsers
       }
     });
   } catch (error) {
@@ -148,16 +153,13 @@ const getQuestions = async (req, res) => {
       whereClause.difficulty = difficulty;
     }
     
-    // Add status filter
-    if (status) {
-      whereClause.active = status === 'active';
-    }
+    
     
     const questions = await prisma.question.findMany({
       where: whereClause,
       skip: parseInt(skip),
       take: parseInt(limit),
-      orderBy: { createdAt: 'desc' }
+      orderBy: { id: 'desc' }
     });
     
     const totalQuestions = await prisma.question.count({ where: whereClause });
@@ -200,22 +202,22 @@ const getQuestionById = async (req, res) => {
 // Create new question
 const createQuestion = async (req, res) => {
   try {
-    const { question, type, category, difficulty, correctAnswer, options, explanation, active } = req.body;
-    
-    const newQuestion = await prisma.question.create({
+    let { prompt, category, difficulty, answer, options, region} = req.body;    
+    difficulty = Difficulty[difficulty];
+    region = Region[region]
+    let newQuestion = await prisma.question.create({
+      
       data: {
-        question,
-        type,
+        prompt,
         category,
         difficulty,
-        correctAnswer,
-        options: options || [],
-        explanation,
-        active: active !== undefined ? active : true
+        answer,
+        options,
+        region
       }
     });
     
-    res.status(201).json(newQuestion);
+    res.json(newQuestion);
   } catch (error) {
     console.error('Error creating question:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -226,23 +228,22 @@ const createQuestion = async (req, res) => {
 const updateQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    const { question, type, category, difficulty, correctAnswer, options, explanation, active } = req.body;
-    
-    const updatedQuestion = await prisma.question.update({
-      where: { id: parseInt(id) },
+    let { prompt, category, difficulty, answer, options, region} = req.body;
+    difficulty = Difficulty[difficulty];
+    region = Region[region]
+    let updatedQuestionDb = await prisma.question.update({
+      where: { id: Number(id) },
       data: {
-        question,
-        type,
+        prompt,
         category,
         difficulty,
-        correctAnswer,
+        answer,
         options,
-        explanation,
-        active
+        region
       }
     });
     
-    res.json(updatedQuestion);
+    res.json(updatedQuestionDb);
   } catch (error) {
     console.error('Error updating question:', error);
     res.status(500).json({ error: 'Internal server error' });
