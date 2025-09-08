@@ -23,10 +23,7 @@ app.use(cors({
   credentials: true          
 }));
 
-app.options("*", cors({ 
-  origin: "https://candaraa-frontend.vercel.app",
-  credentials: true
-}));
+
 
 
 app.use(cookieParser());
