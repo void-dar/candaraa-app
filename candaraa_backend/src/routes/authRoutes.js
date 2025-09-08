@@ -218,7 +218,7 @@ router.post("/verifyEmail",Limiter,verifyToken, async (req, res) => {
   }
 })
 
-router.get('/tokens',Limiter, (req, res) => {
+router.get('/tokens', (req, res) => {
   const token = req.cookies.token;
   const refreshToken = req.cookies.refreshToken;
 
