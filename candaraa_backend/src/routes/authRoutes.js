@@ -2,7 +2,7 @@ import express from "express";
 import validate from "../middleware/schemaValidator.js"
 import verifyToken from "../middleware/authMiddleware.js";
 import prisma from "../database/db.js";
-import {} from "../helpers/authPassport.js"
+import {isNewDay, isTwoOrMoreDaysApart} from "../helpers/authPassport.js"
 import {sendOtp, verifyOtp} from "../helpers/phoneOTP.js"
 import { createUserSchema, loginUserSchema } from "../schema/User.js"
 import passport from "passport";
@@ -63,20 +63,49 @@ router.post("/otp/send",otpLimiter,  async (req, res) => {
     }
   })
   if (!user) {res.status(404).json({success: false, error: "User not found"})}
-  await sendOtp(phoneNumber);
-  res.json({ message: "OTP sent" });
+  let code = await sendOtp(phoneNumber);
+  res.json({ message: "OTP sent", code: code });
 });
 
 router.post("/otp/verify",otpLimiter,  async (req, res) => {
   const { phoneNumber, code } = req.body;
 
-  const {user} = await verifyOtp(phoneNumber, code);
+  let {user} = await verifyOtp(phoneNumber, code);
   if (!user) return res.status(400).json({ error: "Invalid OTP" });
+
+
+  const userId = user.id;
+  let lastSeen = new Date();
+  let streak = user.streak;
+  if (isNewDay(lastSeen, user.updatedAt)) { 
+    streak++;
+  }
+  if (isTwoOrMoreDaysApart(lastSeen, user.updatedAt)){
+    streak = 0
+  }
+    
+  user = await prisma.user.update({ where: { id: userId }, data: {streak: streak},  select: {
+    id: true,
+    username: true,
+    email: true,
+    phoneNumber: true,
+    isPremium: true,
+    isVerified: true,
+    region: true,
+    role: true,
+    level: true,
+    points: true,
+    coins: true,
+    usdt: true,
+    streak: true,
+    createdAt: true,
+    updatedAt: true }
+  });
 
   
   const token = generateToken(user);
   const refreshToken = generateRefreshToken(user)
-  res.json({ token, user, refreshToken });
+  res.json({ token, user, refreshToken});
 });
 
 
@@ -97,9 +126,9 @@ router.get(
 
       res.cookie('token', token, {
         httpOnly: true,    
-        secure: false,     // set to true in production (https)
+        secure: false,     
         sameSite: 'lax',   
-        maxAge: 15 * 60 * 1000, // 15 minutes
+        maxAge: 30 * 60 * 1000, // 15 minutes
       });
 
       res.cookie('refreshToken', refreshToken, {
@@ -109,7 +138,7 @@ router.get(
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-    res.redirect(`http://localhost:5500/candaraa.html`);
+    res.redirect(`${process.env.FRONTEND}?google=true`);
 
   }
 );

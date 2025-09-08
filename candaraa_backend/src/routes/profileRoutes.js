@@ -35,6 +35,9 @@ router.get("/user", verifyToken, async (req, res) => {
             message: "user not found"
           })
         }
+
+        
+       
         res.status(201).json({
           success: true,
           user: checkUser

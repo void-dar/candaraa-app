@@ -21,6 +21,7 @@ const gameControl =  async (req, res) => {
     const newLevel = calculateLevel(newPoints);
     let nextLevel = pointsForNextLevel(newLevel);
 
+
     
     const updatedUser = await prisma.user.update({
       where: { id: userId },

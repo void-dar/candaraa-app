@@ -6,12 +6,22 @@ import bcrypt from "bcrypt";
 import prisma from "../database/db.js";
 import { Region } from "../../generated/prisma/index.js";
 
-function isNewDay(date1, date2) {
+export function isNewDay(date1, date2) {
     return (
         date1.getFullYear() !== date2.getFullYear() ||
         date1.getMonth() !== date2.getMonth() ||
         date1.getDate() !== date2.getDate()
     );
+}
+
+export function isTwoOrMoreDaysApart(date1, date2) {
+  const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+  const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+
+  const diffMs = Math.abs(d1 - d2);
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+  return diffDays >= 2;
 }
 
 passport.use(
@@ -30,6 +40,9 @@ passport.use(
         let streak = user.streak;
         if (isNewDay(lastSeen, user.updatedAt)) { 
           streak++;
+        }
+        if (isTwoOrMoreDaysApart(lastSeen, user.updatedAt)){
+          streak = 0
         }
         
         user = await prisma.user.update({ where: { id: userId }, data: {streak: streak},  select: {
@@ -70,6 +83,18 @@ passport.use(
         let user = await prisma.user.findUnique({
           where: { email: profile.emails[0].value },
           include: { authProviders: true },
+        });
+        let lastSeen = new Date();
+        let streak = user.streak;
+        if (isNewDay(lastSeen, user.updatedAt)) { 
+          streak++;
+        }
+        if (isTwoOrMoreDaysApart(lastSeen, user.updatedAt)){
+          streak = 0
+        }
+         await prisma.user.update({
+          where: { email: profile.emails[0].value },
+          data: { streak: streak },
         });
 
         if (!user) {
