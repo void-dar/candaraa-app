@@ -90,24 +90,24 @@ export const updateWallet = async (req, res) => {
 };
 
 
-// Withdraw coins as crypto
+
 export const withdrawUsdt = async (req, res) => {
   const userId = req.user.id;
-  const { walletAddress, cryptoType, usdt } = req.body;
+  const { walletAddress, usdt } = req.body;
 
-  if (!walletAddress || !cryptoType || !usdt || usdt <= 0) {
+  if (!walletAddress || !usdt || usdt <= 0) {
     return res.status(400).json({ message: "Invalid request" });
   }
 
   try {
-    // Get user's wallet
+ 
     const wallet = await prisma.wallet.findUnique({ where: { walletAddress } });
     if (!wallet || wallet.userId !== userId) {
       return res.status(404).json({ message: "Wallet not found" });
     }
 
   
-    // Convert coins to crypto amount
+
    
     const cryptoAmount = await prisma.user.update({where: {id: userId}, data: {usdt: (req.user.usdt - usdt)}, select: {usdt: true}})
     await prisma.transaction.update({where: {id: user.id}, data: {amount: usdt, type: FinanceAction.WITHDRAW}})
@@ -117,7 +117,7 @@ export const withdrawUsdt = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Successfully converted ${coins} coins to ${cryptoAmount} ${cryptoType}`,
+      message: `Successfully withdrew ${cryptoAmount}`,
       cryptoAmount,
       walletAddress,
       cryptoType: "usdt",

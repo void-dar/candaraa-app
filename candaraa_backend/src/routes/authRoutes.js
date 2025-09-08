@@ -9,26 +9,38 @@ import passport from "passport";
 import registerUserWithPassword from "../controllers/authController.js";
 import {generateToken, generateRefreshToken} from "../helpers/generateToken.js"
 import jwt from "jsonwebtoken";
-
+import rateLimit from "express-rate-limit"
 
 const router = express.Router();
 
+const otpLimiter = rateLimit({
+  windowMs: 60 * 1000, 
+  max: 3,              
+  message: { error: "Too many OTP requests. Please try again later." }
+});
 
-router.post("/register", validate(createUserSchema), registerUserWithPassword, passport.authenticate("local", { session: false }), (req, res) => {
+const Limiter = rateLimit({
+  windowMs: 60 * 1000,  
+  max: 5,               
+  message: { error: "Too many OTP requests. Please try again later." }
+});
+
+
+router.post("/register",Limiter, validate(createUserSchema), registerUserWithPassword, passport.authenticate("local", { session: false }), (req, res) => {
   const token = generateToken(req.user);
   let user = req.user;
   const refreshToken = generateRefreshToken(req.user)
   res.json({ token, user, refreshToken });
 });
 
-router.post("/login", validate(loginUserSchema),passport.authenticate("local", { session: false }), (req, res) => {
+router.post("/login",Limiter, validate(loginUserSchema),passport.authenticate("local", { session: false }), (req, res) => {
   const token = generateToken(req.user);
   let user = req.user;
   const refreshToken = generateRefreshToken(req.user)
   res.json({ token, user, refreshToken });
 });
 
-router.post("/otp/send",  async (req, res) => {
+router.post("/otp/send",otpLimiter,  async (req, res) => {
   const { phoneNumber } = req.body;
   const user = await prisma.user.findUnique({
     where: {phoneNumber: phoneNumber}, select: {
@@ -51,19 +63,19 @@ router.post("/otp/send",  async (req, res) => {
     }
   })
   if (!user) {res.status(404).json({success: false, error: "User not found"})}
-  await sendOtp(phoneNumber, req.user);
+  await sendOtp(phoneNumber);
   res.json({ message: "OTP sent" });
 });
 
-router.post("/otp/verify",  async (req, res) => {
+router.post("/otp/verify",otpLimiter,  async (req, res) => {
   const { phoneNumber, code } = req.body;
 
-  const {user} = await verifyOtp(phoneNumber, code, req.user);
+  const {user} = await verifyOtp(phoneNumber, code);
   if (!user) return res.status(400).json({ error: "Invalid OTP" });
 
   
-  const token = generateToken(req.user);
-  const refreshToken = generateRefreshToken(req.user)
+  const token = generateToken(user);
+  const refreshToken = generateRefreshToken(user)
   res.json({ token, user, refreshToken });
 });
 
@@ -135,7 +147,7 @@ router.post("/refresh", async (req, res) => {
       }});
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Issue new tokens
+
     const token = generateToken(user);
     
 
@@ -147,7 +159,7 @@ router.post("/refresh", async (req, res) => {
   }
 });
 
-router.post("/verifyEmail",verifyToken, async (req, res) => {
+router.post("/verifyEmail",Limiter,verifyToken, async (req, res) => {
   try {
     let userId = req.user.id;
     let token = req.query.token
@@ -177,7 +189,7 @@ router.post("/verifyEmail",verifyToken, async (req, res) => {
   }
 })
 
-router.get('/tokens', (req, res) => {
+router.get('/tokens',Limiter, (req, res) => {
   const token = req.cookies.token;
   const refreshToken = req.cookies.refreshToken;
 

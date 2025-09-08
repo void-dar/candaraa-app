@@ -1,51 +1,93 @@
-import twilio from "twilio";
 import prisma from "../database/db.js";
+import fetch from "node-fetch"
+import { Provider } from "../../generated/prisma/index.js";
 
-const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 
 
-export async function sendOtp(phoneNumber, user) {
-  const code = Math.floor(100000 + Math.random() * 900000); 
+
+async function sendSms(phone, otp) {
+  const resp = await fetch("https://v3.api.termii.com/api/sms/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: process.env.TERMII_API_KEY,
+      to: phone,
+      from: "Prosking",
+      sms: `Your OTP is ${otp}`,
+      type: "plain",
+      channel: "generic"
+    })
+  });
+
+    if (!resp.ok) {
+      throw new Error(`Termii API error: ${resp.status}`);
+    }
+
+  return resp.json();
+}
+
+
+export async function sendOtp(phoneNumber) {
+  const code = Math.floor(100000 + (Math.random() * 900000)); 
   let numCheck = await prisma.user.findFirst({where: {phoneNumber: phoneNumber}});
-  if(numCheck){
-    return "Phone number already exists"
+  if(!numCheck){
+    throw new Error("Phone Number doesn't exist");
+    
   }
 
-  await prisma.authProvider.create({
-    data: {
-      provider: "PHONE",
-      providerId: code.toString(),
-      userId: user.id,
+  let authCheck = await prisma.authProvider.findFirst({
+    where: {
+      provider: Provider["PHONE"],
+      userId: numCheck.id,
     },
   });
+
+  if (authCheck){
+    await prisma.authProvider.update({
+    where: {id: authCheck.id, provider: Provider["PHONE"]}  ,
+    data: {
+      provider: Provider["PHONE"],
+      providerId: code.toString(),
+     
+    },
+  });
+  }else {
+    await prisma.authProvider.create({
+      data: {
+        provider: Provider["PHONE"],
+        providerId: code.toString(),
+        userId: numCheck.id,
+      },
+  });
+  }
+ 
   
 
-  await client.messages.create({
-    body: `Your OTP code is ${code}`,
-    from: process.env.TWILIO_PHONE_NUMBER,
-    to: phoneNumber,
-  });
+ setImmediate(async ()=>{
+      await sendSms(phoneNumber, code)
+ })
 
   return code;
 }
 
 
-export async function verifyOtp(phoneNumber,code, user) {
-  let userId = user.id;
+export async function verifyOtp(phoneNumber,code) {
+  
   const record = await prisma.authProvider.findFirst({
-    where: { provider: "PHONE", providerId: code, userId: {userId} },
+    where: { provider: Provider["PHONE"], providerId: code },
   });
   
-  if (!record) return null;
+  if (!record) throw new Error("OTP not found");
+  
   await prisma.user.update({
-    where: {id: user.id},
+    where: {id: record.id},
     data: {
       phoneNumber: phoneNumber
     },
   });
   
-  let getUser = await prisma.user.findUnique({
-      where: {id: user.id},
+  let getUser = await prisma.user.findFirst({
+      where: {phoneNumber: phoneNumber},
       
     });
     

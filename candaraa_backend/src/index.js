@@ -36,7 +36,7 @@ app.use("/convert", conversionRouter);
 app.use("/admin", adminRouter)
 app.use("/leaderboard", leaderBoardRouter)
 app.use("/wallet", walletRouter)
-
+app.use("/guest", guestRouter)
 
 app.listen(PORT, () => {
     console.log(`Server is now running on ${PORT}`);
