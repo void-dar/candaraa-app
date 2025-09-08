@@ -40,7 +40,7 @@ export const verifyToken = async (req, res, next) => {
 
   } catch (err) {
     console.error(err);
-    res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" + err });
   }
 };
 
