@@ -89,7 +89,8 @@ export const answerQuestion = async (req, res) => {
       res.status(200).json({
         answer: answer === question.answer,
         points: points,
-        user: updatedUser
+        user: updatedUser,
+        reward: reward
         
       });
 
