@@ -112,10 +112,10 @@ const getUserByUsername = async (req, res) => {
 // Delete user
 const deleteUser = async (req, res) => {
   try {
-    const { username } = req.params;
+    const { id } = req.params;
     
     await prisma.user.delete({
-      where: { username: username }
+      where: { id: id }
     });
     
     res.json({ message: 'User deleted successfully' });
