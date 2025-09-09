@@ -74,7 +74,7 @@ export const answerQuestion = async (req, res) => {
 
 
 
-      await prisma.user.update({
+      let updatedUser = await prisma.user.update({
         where: { id: userId },
         data: {
           points: { increment: points },
