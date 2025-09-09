@@ -70,7 +70,7 @@ model Wallet {
   walletId String @id @default(uuid()) @db.Uuid
   walletAddress String @unique
   userId String @unique @db.Uuid
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Question {
@@ -82,7 +82,7 @@ model Question {
   options String[] @default([])
   difficulty Difficulty[] @default([EASY])
   authorId String? @db.Uuid
-  author User? @relation(fields: [authorId], references: [id])
+  author User? @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 
@@ -92,7 +92,7 @@ model AuthProvider {
   provider  Provider 
   providerId String?
   userId    String  @db.Uuid
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -109,5 +109,5 @@ model Transaction {
   details   String?
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
