@@ -66,23 +66,24 @@ export const answerQuestion = async (req, res) => {
      
       points = reward.points;
       coins = pointsToCoins(points);
-
+      coins = new Decimal(coins)
 
       const newPoints = userBefore.points + points;
       const newLevel = calculateLevel(newPoints);
-      const newCoins = Number(userBefore.coins) + Number(coins);
+      
 
-      const updatedUser = await prisma.user.update({
+
+
+      await prisma.user.update({
         where: { id: userId },
         data: {
-          points: newPoints,
-          coins: new Decimal(newCoins),
+          points: { increment: points },
+          coins: { increment: coins },
           level: newLevel,
         },
-        select: { id: true, coins: true, points: true, level: true},
+        select: { id: true, coins: true, points: true, level: true },
       });
-
-    
+          
      
 
       res.status(200).json({
