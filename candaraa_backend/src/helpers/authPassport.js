@@ -84,18 +84,22 @@ passport.use(
           where: { email: profile.emails[0].value },
           include: { authProviders: true },
         });
-        let lastSeen = new Date();
-        let streak = user.streak;
-        if (isNewDay(lastSeen, user.updatedAt)) { 
-          streak++;
+
+        if(user) {
+          let lastSeen = new Date();
+          let streak = user.streak;
+          if (isNewDay(lastSeen, user.updatedAt)) { 
+            streak++;
+          }
+          if (isTwoOrMoreDaysApart(lastSeen, user.updatedAt)){
+            streak = 0
+          }
+          await prisma.user.update({
+            where: { email: profile.emails[0].value },
+            data: { streak: streak },
+          });
         }
-        if (isTwoOrMoreDaysApart(lastSeen, user.updatedAt)){
-          streak = 0
-        }
-         await prisma.user.update({
-          where: { email: profile.emails[0].value },
-          data: { streak: streak },
-        });
+       
 
         if (!user) {
           
