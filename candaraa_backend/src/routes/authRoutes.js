@@ -128,7 +128,7 @@ router.get(
         httpOnly: true,    
         secure: true,     
         sameSite: 'none',   
-        maxAge: 30 * 60 * 1000, // 15 minutes
+        maxAge: 60 * 60 * 1000, // 15 minutes
       });
 
       res.cookie('refreshToken', refreshToken, {
