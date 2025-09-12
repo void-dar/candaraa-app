@@ -33,7 +33,7 @@ export const getRandomQuestion = async (req, res) => {
 
     // Shuffle the questions and take up to 10
     const shuffled = questions.sort(() => 0.5 - Math.random());
-    const selectedQuestions = shuffled.slice(0, 10).map(({ answer, ...q }) => q); // remove 'answer' field
+    const selectedQuestions = shuffled.slice(0, 10) 
 
     res.status(200).json({ questions: selectedQuestions });
   } catch (err) {
